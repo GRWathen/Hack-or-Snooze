@@ -1,3 +1,7 @@
+//TODO: star
+//TODO: favorites
+//TODO: trash
+
 $(async function() {
   // cache some selectors we'll be using quite a bit
   const $allStoriesList = $("#all-articles-list");
@@ -8,6 +12,13 @@ $(async function() {
   const $ownStories = $("#my-articles");
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
+
+  const $mainNavLinks = $(".main-nav-links");
+  const $navSubmit = $("#nav-submit");
+  const $navMyStories = $("#nav-my-stories");
+  const $navWelcome = $("#nav-welcome");
+  const $userProfile = $("#user-profile");
+  const $navUserProfile = $("#nav-user-profile");
 
   // global storyList variable
   let storyList = null;
@@ -56,6 +67,23 @@ $(async function() {
   });
 
   /**
+   * Event listener for submitting.
+   *  If successfully we will submit a new article
+   */
+  $submitForm.on("submit", async function (evt) {
+    evt.preventDefault(); // no page-refresh on submit
+
+    // grab the required fields
+    let author = $("#author").val();
+    let title = $("#title").val();
+    let url = $("#url").val();
+
+    const date = new Date().toISOString();
+    const story = new Story({ author: author, title: title, url: url});
+    storyList.addStory(currentUser, story);
+  });
+
+  /**
    * Log Out Functionality
    */
   $navLogOut.on("click", function() {
@@ -80,8 +108,37 @@ $(async function() {
    */
   $("body").on("click", "#nav-all", async function() {
     hideElements();
-    await generateStories();
+    await generateStories(false);
     $allStoriesList.show();
+  });
+
+  /**
+   * Event handler for Submit link
+   */
+  $navSubmit.on("click", function () {
+    hideElements();
+    $submitForm.css("display", "flex");
+    $allStoriesList.show();
+  });
+
+  /**
+   * Event handler for My Stories link
+   */
+  $navMyStories.on("click", async function () {
+    hideElements();
+    await generateStories(true);
+    $ownStories.css("display", "block");
+  });
+
+  /**
+   * Event listener for User Profile link
+   */
+  $navUserProfile.on("click", function (evt) {
+    hideElements();
+    $("#profile-name").text(currentUser.name);
+    $("#profile-username").text(currentUser.username);
+    $("#profile-account-date").text(currentUser.createdAt.split('T')[0]);
+    $userProfile.show();
   });
 
   /**
@@ -97,7 +154,7 @@ $(async function() {
     //  to get an instance of User with the right details
     //  this is designed to run once, on page load
     currentUser = await User.getLoggedInUser(token, username);
-    await generateStories();
+    await generateStories(false);
 
     if (currentUser) {
       showNavForLoggedInUser();
@@ -127,18 +184,27 @@ $(async function() {
    * A rendering function to call the StoryList.getStories static method,
    *  which will generate a storyListInstance. Then render it.
    */
-  async function generateStories() {
+  async function generateStories(myStories) {
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
     // update our global variable
     storyList = storyListInstance;
     // empty out that part of the page
     $allStoriesList.empty();
+    $ownStories.empty();
 
+    let noStories = true;
     // loop through all of our stories and generate HTML for them
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
       $allStoriesList.append(result);
+      if (myStories && (story.username === currentUser.username)) {
+        noStories = false;
+        $ownStories.append(result);
+      }
+    }
+    if (myStories && noStories) {
+      $ownStories.append("<h5>No stories added by user yet!</h5>");
     }
   }
 
@@ -171,7 +237,8 @@ $(async function() {
       $filteredArticles,
       $ownStories,
       $loginForm,
-      $createAccountForm
+      $createAccountForm,
+      $userProfile
     ];
     elementsArr.forEach($elem => $elem.hide());
   }
@@ -179,6 +246,9 @@ $(async function() {
   function showNavForLoggedInUser() {
     $navLogin.hide();
     $navLogOut.show();
+    $mainNavLinks.css("display", "inline");
+    $("#nav-welcome").css("display", "inline");
+    $navUserProfile.text(currentUser.username);
   }
 
   /* simple function to pull the hostname from a URL */
