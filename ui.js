@@ -80,7 +80,16 @@ $(async function() {
 
     const date = new Date().toISOString();
     const story = new Story({ author: author, title: title, url: url});
-    storyList.addStory(currentUser, story);
+    await storyList.addStory(currentUser, story);
+
+    $("#author").val("");
+    $("#title").val("");
+    $("#url").val("");
+
+    hideElements();
+    await generateStories(false);
+    $submitForm.css("display", "flex");
+    $allStoriesList.show();
   });
 
   /**
@@ -115,8 +124,9 @@ $(async function() {
   /**
    * Event handler for Submit link
    */
-  $navSubmit.on("click", function () {
+  $navSubmit.on("click", async function () {
     hideElements();
+    await generateStories(false);
     $submitForm.css("display", "flex");
     $allStoriesList.show();
   });
