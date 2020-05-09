@@ -55,9 +55,9 @@ $(async function() {
     evt.preventDefault(); // no page refresh
 
     // grab the required fields
-    let name = $("#create-account-name").val();
-    let username = $("#create-account-username").val();
-    let password = $("#create-account-password").val();
+    const name = $("#create-account-name").val();
+    const username = $("#create-account-username").val();
+    const password = $("#create-account-password").val();
 
     // call the create method, which calls the API and then builds a new user instance
     const newUser = await User.create(username, password, name);
@@ -74,9 +74,9 @@ $(async function() {
     evt.preventDefault(); // no page-refresh on submit
 
     // grab the required fields
-    let author = $("#author").val();
-    let title = $("#title").val();
-    let url = $("#url").val();
+    const author = $("#author").val();
+    const title = $("#title").val();
+    const url = $("#url").val();
 
     const date = new Date().toISOString();
     const story = new Story({ author: author, title: title, url: url});
@@ -97,7 +97,9 @@ $(async function() {
    */
   $navLogOut.on("click", function() {
     // empty out local storage
-    localStorage.clear();
+    //localStorage.clear();
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
     // refresh the page, clearing memory
     location.reload();
   });
@@ -152,6 +154,17 @@ $(async function() {
   });
 
   /**
+   * Event handler for favorites star
+   */
+  $(document).on("click", ".star", function (evt) {
+    if (currentUser) {
+      evt.target.classList.toggle("fas");
+      evt.target.classList.toggle("far");
+      localStorage.setItem(evt.currentTarget.parentNode.id, evt.target.className);
+    }
+  });
+
+  /**
    * On page load, checks local storage to see if the user is already logged in.
    * Renders page information accordingly.
    */
@@ -174,7 +187,7 @@ $(async function() {
   /**
    * A rendering function to run to reset the forms and hide the login info
    */
-  function loginAndSubmitForm() {
+  async function loginAndSubmitForm() {
     // hide the forms for logging in and signing up
     $loginForm.hide();
     $createAccountForm.hide();
@@ -184,6 +197,7 @@ $(async function() {
     $createAccountForm.trigger("reset");
 
     // show the stories
+    await generateStories(false);
     $allStoriesList.show();
 
     // update the navigation bar
@@ -222,11 +236,23 @@ $(async function() {
    * A function to render HTML for an individual Story instance
    */
   function generateStoryHTML(story) {
-    let hostName = getHostName(story.url);
+    const hostName = getHostName(story.url);
 
     // render story markup
+    let classList = "fa-star far";
+    if (currentUser) {
+      classList = localStorage.getItem(story.storyId)
+      if (classList === null) {
+        classList = "fa-star far";
+      }
+      localStorage.setItem(story.storyId, classList);
+    }
+
     const storyMarkup = $(`
       <li id="${story.storyId}">
+        <span class="star">
+          <i class="${classList}"></i>
+        </span>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
