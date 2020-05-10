@@ -1,4 +1,6 @@
-// TODO: further study
+// TODO: Allow users to edit stories they have created.
+// TODO: Add a section for a “user profile” where a user can change their name and password in their profile.
+// TODO: Come up with some other features you can build using what our Hack or Snooze API makes available to you!
 
 $(async function() {
   // cache some selectors we'll be using quite a bit
@@ -39,8 +41,25 @@ $(async function() {
     const username = $("#login-username").val();
     const password = $("#login-password").val();
 
+    if ((username === "") || (password === "")) {
+      $("#message span").text("Enter Username and Password");
+      $("#message").css("display", "inherit");
+      disableInputs(true);
+      return;
+    }
+
     // call the login static method to build a user instance
-    const userInstance = await User.login(username, password);
+    let userInstance
+    try {
+      userInstance = await User.login(username, password);
+    }
+    catch (e) {
+      $("#message span").text(e);
+      $("#message").css("display", "inherit");
+      disableInputs(true);
+      currentUser = null;
+      return;
+    }
     // set the global user to the user instance
     currentUser = userInstance;
     syncCurrentUserToLocalStorage();
@@ -59,8 +78,26 @@ $(async function() {
     const username = $("#create-account-username").val();
     const password = $("#create-account-password").val();
 
+    if ((name === "") || (username === "") || (password === "")) {
+      $("#message span").text("Enter Name, Username, and Password");
+      $("#message").css("display", "inherit");
+      disableInputs(true);
+      return;
+    }
+
     // call the create method, which calls the API and then builds a new user instance
-    const newUser = await User.create(username, password, name);
+    let newUser
+    try {
+      newUser = await User.create(username, password, name);
+    }
+    catch (e) {
+      $("#message span").text(e);
+      $("#message").css("display", "inherit");
+      disableInputs(true);
+      currentUser = null;
+      return;
+    }
+    // set the global user to the new user
     currentUser = newUser;
     syncCurrentUserToLocalStorage();
     loginAndSubmitForm();
@@ -191,6 +228,16 @@ $(async function() {
   });
 
   /**
+   * Event handler for Message
+   */
+  $("#message").on("click", function (evt) {
+    evt.preventDefault(); // no page refresh
+    $("#message").css("display", "none");
+    $("#message span").text("");
+    disableInputs(false);
+  });
+
+  /**
    * On page load, checks local storage to see if the user is already logged in.
    * Renders page information accordingly.
    */
@@ -259,10 +306,10 @@ $(async function() {
         $ownStories.append(result);
       }
     }
-    if ((stories === "favorite") && noStories) {
+    if (noStories && (stories === "favorite")) {
       $favStories.append("<h5>No favorites added!</h5>");
     }
-    if ((stories === "my") && noStories) {
+    if (noStories && (stories === "my")) {
       $ownStories.append("<h5>No stories added by user yet!</h5>");
     }
   }
@@ -350,5 +397,10 @@ $(async function() {
       localStorage.setItem("token", currentUser.loginToken);
       localStorage.setItem("username", currentUser.username);
     }
+  }
+
+  function disableInputs(disable) {
+    $("input").prop("disabled", disable);
+    $("button").prop("disabled", disable);
   }
 });

@@ -30,12 +30,9 @@ a:hover {
   text-decoration: underline;
 }
 
-
 .hidden {
   display: none;
 }
-
-
 
 nav {
   display: flex;
@@ -211,6 +208,17 @@ form > hr {
   margin: 10px 0;
 }
 
+#message {
+  position: fixed;
+  display: none;
+  top: 20%;
+  left: 20%;
+  right: 20%;
+  border: 5px double black;
+  padding: 10px;
+  text-align: center;
+  background-color: whitesmoke;
+}
 
 /** responsive queries for tightening things up for mobile. */
 

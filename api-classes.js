@@ -75,13 +75,25 @@ class User {
    * - name: the user's full name
    */
   static async create(username, password, name) {
-    const response = await axios.post(`${BASE_URL}/signup`, {
-      user: {
-        username,
-        password,
-        name
+    let response;
+    try {
+      response = await axios.post(`${BASE_URL}/signup`, {
+        user: {
+          username,
+          password,
+          name
+        }
+      });
+    }
+    catch (e) {
+      if ((e.response.status === 401) || (e.response.status === 404)) {
+        throw "Invalid Name, Username, or Password";
       }
-    });
+      if (e.response.status === 409) {
+        throw e.response.data.error.message;
+      }
+      throw e.message;
+    }
 
     // build a new User instance from the API response
     const newUser = new User(response.data.user);
@@ -98,12 +110,21 @@ class User {
    * - password: an existing user's password
    */
   static async login(username, password) {
-    const response = await axios.post(`${BASE_URL}/login`, {
-      user: {
-        username,
-        password
+    let response;
+    try {
+      response = await axios.post(`${BASE_URL}/login`, {
+        user: {
+          username,
+          password
+        }
+      });
+    }
+    catch (e) {
+      if ((e.response.status === 401) || (e.response.status === 404)) {
+        throw "Invalid Username or Password";
       }
-    });
+      throw e.message;
+    }
 
     // build a new User instance from the API response
     const existingUser = new User(response.data.user);
@@ -168,8 +189,14 @@ class User {
     }
     else {
       //const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
+      /*/
+      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
+        //"token": this.loginToken
+        token: this.loginToken
+      });
+      //*/
       const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, null, {
-        data: {
+        params: {
           token: this.loginToken
         }
       });
