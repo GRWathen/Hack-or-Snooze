@@ -157,41 +157,33 @@ class User {
   }
 
   async setFavorite(storyId) {
-    // TODO: axios param
     if (this.storyExists(storyId)) {
-      const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
-      /*/
+      //const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
       const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
         params: {
-          token // this.loginToken
+          token: this.loginToken
         }
       });
-      //*/
       return false;
     }
     else {
-      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
-      /*/
-      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
-        params: {
-          token // this.loginToken
+      //const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
+      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, null, {
+        data: {
+          token: this.loginToken
         }
       });
-      //*/
       return true;
     }
   }
 
   async deleteStory(storyId) {
-    // TODO: axios param
-    const response = await axios.delete(`${BASE_URL}/stories/${storyId}?token=${this.loginToken}`);
-    /*/
+    //const response = await axios.delete(`${BASE_URL}/stories/${storyId}?token=${this.loginToken}`);
     const response = await axios.delete(`${BASE_URL}/stories/${storyId}`, {
       params: {
-        token // this.loginToken
+        token : this.loginToken
       }
     });
-    //*/
   }
 }
 

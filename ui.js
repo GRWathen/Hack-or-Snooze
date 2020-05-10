@@ -235,8 +235,6 @@ $(async function() {
    *  which will generate a storyListInstance. Then render it.
    */
   async function generateStories(stories) {
-    console.log(currentUser ? currentUser.ownStories : null);
-    console.log(currentUser ? currentUser.favorites : null);
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
     // update our global variable
