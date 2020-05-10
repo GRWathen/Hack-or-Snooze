@@ -1,6 +1,4 @@
-//TODO: star
-//TODO: favorites
-//TODO: trash
+// TODO: further study
 
 $(async function() {
   // cache some selectors we'll be using quite a bit
@@ -9,12 +7,14 @@ $(async function() {
   const $filteredArticles = $("#filtered-articles");
   const $loginForm = $("#login-form");
   const $createAccountForm = $("#create-account-form");
+  const $favStories = $("#favorited-articles");
   const $ownStories = $("#my-articles");
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
 
   const $mainNavLinks = $(".main-nav-links");
   const $navSubmit = $("#nav-submit");
+  const $navFavorites = $("#nav-favorites");
   const $navMyStories = $("#nav-my-stories");
   const $navWelcome = $("#nav-welcome");
   const $userProfile = $("#user-profile");
@@ -87,7 +87,7 @@ $(async function() {
     $("#url").val("");
 
     hideElements();
-    await generateStories(false);
+    await generateStories();
     $submitForm.css("display", "flex");
     $allStoriesList.show();
   });
@@ -97,9 +97,7 @@ $(async function() {
    */
   $navLogOut.on("click", function() {
     // empty out local storage
-    //localStorage.clear();
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
+    localStorage.clear();
     // refresh the page, clearing memory
     location.reload();
   });
@@ -117,9 +115,10 @@ $(async function() {
   /**
    * Event handler for Navigation to Homepage
    */
-  $("body").on("click", "#nav-all", async function() {
+  $("body").on("click", "#nav-all", async function(evt) {
+    evt.preventDefault(); // no page refresh
     hideElements();
-    await generateStories(false);
+    await generateStories();
     $allStoriesList.show();
   });
 
@@ -128,9 +127,18 @@ $(async function() {
    */
   $navSubmit.on("click", async function () {
     hideElements();
-    await generateStories(false);
+    await generateStories();
     $submitForm.css("display", "flex");
     $allStoriesList.show();
+  });
+
+  /**
+   * Event handler for Favorites link
+   */
+  $navFavorites.on("click", async function () {
+    hideElements();
+    await generateStories("favorite");
+    $favStories.css("display", "block");
   });
 
   /**
@@ -138,7 +146,7 @@ $(async function() {
    */
   $navMyStories.on("click", async function () {
     hideElements();
-    await generateStories(true);
+    await generateStories("my");
     $ownStories.css("display", "block");
   });
 
@@ -154,13 +162,31 @@ $(async function() {
   });
 
   /**
+   * Event handler for deleting my stories
+   */
+  $(document).on("click", ".trash-can", async function (evt) {
+    if (currentUser) {
+      await currentUser.deleteStory(evt.currentTarget.parentNode.id);
+      currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
+      await generateStories("my");
+      $ownStories.css("display", "block");
+    }
+  });
+
+  /**
    * Event handler for favorites star
    */
-  $(document).on("click", ".star", function (evt) {
+  $(document).on("click", ".star", async function (evt) {
     if (currentUser) {
-      evt.target.classList.toggle("fas");
-      evt.target.classList.toggle("far");
-      localStorage.setItem(evt.currentTarget.parentNode.id, evt.target.className);
+      if (await currentUser.setFavorite(evt.currentTarget.parentNode.id)) {
+        evt.target.classList.add("fas");
+        evt.target.classList.remove("far");
+      }
+      else {
+        evt.target.classList.add("far");
+        evt.target.classList.remove("fas");
+      }
+      currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
     }
   });
 
@@ -177,7 +203,7 @@ $(async function() {
     //  to get an instance of User with the right details
     //  this is designed to run once, on page load
     currentUser = await User.getLoggedInUser(token, username);
-    await generateStories(false);
+    await generateStories();
 
     if (currentUser) {
       showNavForLoggedInUser();
@@ -197,7 +223,7 @@ $(async function() {
     $createAccountForm.trigger("reset");
 
     // show the stories
-    await generateStories(false);
+    await generateStories();
     $allStoriesList.show();
 
     // update the navigation bar
@@ -208,13 +234,16 @@ $(async function() {
    * A rendering function to call the StoryList.getStories static method,
    *  which will generate a storyListInstance. Then render it.
    */
-  async function generateStories(myStories) {
+  async function generateStories(stories) {
+    console.log(currentUser ? currentUser.ownStories : null);
+    console.log(currentUser ? currentUser.favorites : null);
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
     // update our global variable
     storyList = storyListInstance;
     // empty out that part of the page
     $allStoriesList.empty();
+    $favStories.empty();
     $ownStories.empty();
 
     let noStories = true;
@@ -222,12 +251,20 @@ $(async function() {
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
       $allStoriesList.append(result);
-      if (myStories && (story.username === currentUser.username)) {
+      if ((stories === "favorite") && currentUser.storyExists(story.storyId)) {
         noStories = false;
+        $favStories.append(result);
+      }
+      if ((stories === "my") && (story.username === currentUser.username)) {
+        noStories = false;
+        const result = generateStoryHTML(story, true);
         $ownStories.append(result);
       }
     }
-    if (myStories && noStories) {
+    if ((stories === "favorite") && noStories) {
+      $favStories.append("<h5>No favorites added!</h5>");
+    }
+    if ((stories === "my") && noStories) {
       $ownStories.append("<h5>No stories added by user yet!</h5>");
     }
   }
@@ -235,21 +272,28 @@ $(async function() {
   /**
    * A function to render HTML for an individual Story instance
    */
-  function generateStoryHTML(story) {
+  function generateStoryHTML(story, trash = false) {
     const hostName = getHostName(story.url);
 
     // render story markup
     let classList = "fa-star far";
     if (currentUser) {
-      classList = localStorage.getItem(story.storyId)
-      if (classList === null) {
-        classList = "fa-star far";
+      if (currentUser.storyExists(story.storyId)) {
+        classList = "fa-star fas";
       }
-      localStorage.setItem(story.storyId, classList);
+    }
+
+    let trashSpan = "";
+    if (trash) {
+      trashSpan = `
+          <span class="trash-can">
+            <i class="fa-trash-alt fas"></i >
+          </span >
+          `;
     }
 
     const storyMarkup = $(`
-      <li id="${story.storyId}">
+      <li id="${story.storyId}">${trashSpan}
         <span class="star">
           <i class="${classList}"></i>
         </span>
@@ -271,6 +315,7 @@ $(async function() {
       $submitForm,
       $allStoriesList,
       $filteredArticles,
+      $favStories,
       $ownStories,
       $loginForm,
       $createAccountForm,

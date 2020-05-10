@@ -145,6 +145,54 @@ class User {
     existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
     return existingUser;
   }
+
+  /**
+   * Does storyId exist in user's favorites?
+   */
+  storyExists(storyId) {
+    let story = this.favorites.find(function (value) {
+      return value.storyId === storyId;
+    });
+    return story !== undefined;
+  }
+
+  async setFavorite(storyId) {
+    // TODO: axios param
+    if (this.storyExists(storyId)) {
+      const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
+      /*/
+      const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
+        params: {
+          token // this.loginToken
+        }
+      });
+      //*/
+      return false;
+    }
+    else {
+      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
+      /*/
+      const response = await axios.post(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
+        params: {
+          token // this.loginToken
+        }
+      });
+      //*/
+      return true;
+    }
+  }
+
+  async deleteStory(storyId) {
+    // TODO: axios param
+    const response = await axios.delete(`${BASE_URL}/stories/${storyId}?token=${this.loginToken}`);
+    /*/
+    const response = await axios.delete(`${BASE_URL}/stories/${storyId}`, {
+      params: {
+        token // this.loginToken
+      }
+    });
+    //*/
+  }
 }
 
 /**
