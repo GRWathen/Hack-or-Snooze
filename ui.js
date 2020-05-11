@@ -1,6 +1,4 @@
-// TODO: Allow users to edit stories they have created.
 // TODO: Add a section for a “user profile” where a user can change their name and password in their profile.
-// TODO: Come up with some other features you can build using what our Hack or Snooze API makes available to you!
 
 $(async function() {
   // cache some selectors we'll be using quite a bit
@@ -116,7 +114,7 @@ $(async function() {
     const url = $("#url").val();
 
     const date = new Date().toISOString();
-    const story = new Story({ author: author, title: title, url: url});
+    const story = new Story({ author: author, title: title, url: url });
     await storyList.addStory(currentUser, story);
 
     $("#author").val("");
@@ -203,7 +201,7 @@ $(async function() {
    */
   $(document).on("click", ".trash-can", async function (evt) {
     if (currentUser) {
-      await currentUser.deleteStory(evt.currentTarget.parentNode.id);
+      await storyList.deleteStory(currentUser, evt.currentTarget.parentNode.id);
       currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
       await generateStories("my");
       $ownStories.css("display", "block");
@@ -224,6 +222,36 @@ $(async function() {
         evt.target.classList.remove("fas");
       }
       currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
+    }
+  });
+
+  /**
+   * Event handler for editing my stories
+   */
+  $(document).on("click", ".pencil", async function (evt) {
+    if (currentUser) {
+      const story = await storyList.getStory(evt.currentTarget.parentNode.id)
+      const result = generateStoryHTML(story, true, true);
+      evt.currentTarget.parentNode.innerHTML = result[0].innerHTML;
+    }
+  });
+
+  /**
+   * Event handler for saving my stories
+   */
+  $(document).on("click", ".save", async function (evt) {
+    if (currentUser) {
+      const story = await storyList.getStory(evt.currentTarget.parentNode.id)
+
+      // grab the required fields
+      story.author = $("[name='author']").val();
+      story.title = $("[name='title']").val();
+      story.url = $("[name='url']").val();
+
+      await storyList.updateStory(currentUser, story.storyId, { author: story.author, title: story.title, url: story.url });
+      currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
+      await generateStories("my");
+      $ownStories.css("display", "block");
     }
   });
 
@@ -296,7 +324,7 @@ $(async function() {
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
       $allStoriesList.append(result);
-      if ((stories === "favorite") && currentUser.storyExists(story.storyId)) {
+      if ((stories === "favorite") && currentUser.favoriteExists(story.storyId)) {
         noStories = false;
         $favStories.append(result);
       }
@@ -306,6 +334,7 @@ $(async function() {
         $ownStories.append(result);
       }
     }
+
     if (noStories && (stories === "favorite")) {
       $favStories.append("<h5>No favorites added!</h5>");
     }
@@ -317,24 +346,33 @@ $(async function() {
   /**
    * A function to render HTML for an individual Story instance
    */
-  function generateStoryHTML(story, trash = false) {
+  function generateStoryHTML(story, trash = false, edit = false) {
     const hostName = getHostName(story.url);
 
     // render story markup
     let classList = "fa-star far";
     if (currentUser) {
-      if (currentUser.storyExists(story.storyId)) {
+      if (currentUser.favoriteExists(story.storyId)) {
         classList = "fa-star fas";
       }
     }
 
+    const pencilSpan = `
+          <span class="pencil">
+            <i class="fa-pencil-alt fas"></i >
+          </span >
+          `;
+    const editSpan = `
+          <span class="save">
+            <i class="fa-save fas"></i >
+          </span >
+          `;
     let trashSpan = "";
     if (trash) {
       trashSpan = `
           <span class="trash-can">
             <i class="fa-trash-alt fas"></i >
-          </span >
-          `;
+          </span >${edit ? editSpan : pencilSpan}`;
     }
 
     const storyMarkup = $(`
@@ -351,7 +389,20 @@ $(async function() {
       </li>
     `);
 
-    return storyMarkup;
+    const editMarkup = $(`
+      <li id="${story.storyId}">${trashSpan}
+        <span class="star">
+          <i class="${classList}"></i>
+        </span>
+        <input type="hidden" name="url" value="${story.url}">
+        <input type="text" name="title" value="${story.title}">
+        <input type="text" name="author" value="${story.author}">
+        <small class="article-hostname ${hostName}">(${hostName})</small>
+        <small class="article-username">posted by ${story.username}</small>
+      </li>
+    `);
+
+    return edit ? editMarkup : storyMarkup;
   }
 
   /* hide all elements in elementsArr */

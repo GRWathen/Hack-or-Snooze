@@ -144,7 +144,8 @@ form > hr {
 
 .star,
 .trash-can,
-.pencil {
+.pencil
+.save {
   font-size: 0.75rem;
   margin: 0 2px;
   cursor: pointer;
@@ -156,6 +157,10 @@ form > hr {
 
 .pencil:hover {
   color: darkblue;
+}
+
+.save:hover {
+  color: yellow;
 }
 
 .article-link > strong {

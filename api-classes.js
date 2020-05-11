@@ -47,6 +47,27 @@ class StoryList {
       "story" : newStory
     });
   }
+
+  async getStory(storyId) {
+    const response = await axios.get(`${BASE_URL}/stories/${storyId}`);
+    return response.data.story;
+  }
+
+  async updateStory(user, storyId, story) {
+    const response = await axios.patch(`${BASE_URL}/stories/${storyId}`, {
+      "token": user.loginToken,
+      "story": story
+    });
+  }
+
+  async deleteStory(user, storyId) {
+    //const response = await axios.delete(`${BASE_URL}/stories/${storyId}?token=${this.loginToken}`);
+    const response = await axios.delete(`${BASE_URL}/stories/${storyId}`, {
+      params: {
+        token: user.loginToken
+      }
+    });
+  }
 }
 
 /**
@@ -170,15 +191,15 @@ class User {
   /**
    * Does storyId exist in user's favorites?
    */
-  storyExists(storyId) {
-    let story = this.favorites.find(function (value) {
+  favoriteExists(storyId) {
+    const story = this.favorites.find(function (value) {
       return value.storyId === storyId;
     });
     return story !== undefined;
   }
 
   async setFavorite(storyId) {
-    if (this.storyExists(storyId)) {
+    if (this.favoriteExists(storyId)) {
       //const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}?token=${this.loginToken}`);
       const response = await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${storyId}`, {
         params: {
@@ -202,15 +223,6 @@ class User {
       });
       return true;
     }
-  }
-
-  async deleteStory(storyId) {
-    //const response = await axios.delete(`${BASE_URL}/stories/${storyId}?token=${this.loginToken}`);
-    const response = await axios.delete(`${BASE_URL}/stories/${storyId}`, {
-      params: {
-        token : this.loginToken
-      }
-    });
   }
 }
 
