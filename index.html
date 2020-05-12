@@ -107,9 +107,13 @@
     </section>
     <section class="container">
       <div id="user-profile" class="hidden">
-        <h4>User Profile Info</h4>
+        <h4>
+          User Profile Info&nbsp;
+          <span id="editProfile" class="pencil"><i class="fa-pencil-alt fas"></i></span>
+          <span id="saveProfile" class="save hidden"><i class="fa-save fas"></i></span>
+        </h4>
         <section>
-          <div>Name: <span id="profile-name"></span></div>
+          <div>Name: <span id="profile-name"></span><input class="hidden" type="text" name="profile-name"></div>
           <div>Username: <span id="profile-username"></span></div>
           <div>Account Created: <span id="profile-account-date"></span></div>
         </section>

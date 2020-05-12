@@ -224,6 +224,15 @@ class User {
       return true;
     }
   }
+
+  async updateUser(name) {
+    const response = await axios.patch(`${BASE_URL}/users/${this.username}`, {
+      "token": this.loginToken,
+      "user": {
+        "name": name
+      }
+    });
+  }
 }
 
 /**

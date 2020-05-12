@@ -1,5 +1,3 @@
-// TODO: Add a section for a “user profile” where a user can change their name and password in their profile.
-
 $(async function() {
   // cache some selectors we'll be using quite a bit
   const $allStoriesList = $("#all-articles-list");
@@ -190,6 +188,12 @@ $(async function() {
    */
   $navUserProfile.on("click", function (evt) {
     hideElements();
+
+    $("#editProfile")[0].classList.remove("hidden");
+    $("#saveProfile")[0].classList.add("hidden");
+    $("#profile-name")[0].classList.remove("hidden");
+    $("[name='profile-name']")[0].classList.add("hidden");
+
     $("#profile-name").text(currentUser.name);
     $("#profile-username").text(currentUser.username);
     $("#profile-account-date").text(currentUser.createdAt.split('T')[0]);
@@ -228,7 +232,7 @@ $(async function() {
   /**
    * Event handler for editing my stories
    */
-  $(document).on("click", ".pencil", async function (evt) {
+  $(document).on("click", "#editStory", async function (evt) {
     if (currentUser) {
       const story = await storyList.getStory(evt.currentTarget.parentNode.id)
       const result = generateStoryHTML(story, true, true);
@@ -239,7 +243,7 @@ $(async function() {
   /**
    * Event handler for saving my stories
    */
-  $(document).on("click", ".save", async function (evt) {
+  $(document).on("click", "#saveStory", async function (evt) {
     if (currentUser) {
       const story = await storyList.getStory(evt.currentTarget.parentNode.id)
 
@@ -252,6 +256,33 @@ $(async function() {
       currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
       await generateStories("my");
       $ownStories.css("display", "block");
+    }
+  });
+
+  /**
+   * Event handler for editing user profile
+   */
+  $(document).on("click", "#editProfile", async function (evt) {
+    if (currentUser) {
+      $("#editProfile")[0].classList.add("hidden");
+      $("#saveProfile")[0].classList.remove("hidden");
+      $("[name='profile-name']").val($("#profile-name").text());
+      $("#profile-name")[0].classList.add("hidden");
+      $("[name='profile-name']")[0].classList.remove("hidden");
+    }
+  });
+
+  /**
+   * Event handler for saving user profile
+   */
+  $(document).on("click", "#saveProfile", async function (evt) {
+    if (currentUser) {
+      $("#saveProfile")[0].classList.add("hidden");
+      $("#editProfile")[0].classList.remove("hidden");
+
+      await currentUser.updateUser($("[name='profile-name']").val());
+      currentUser = await User.getLoggedInUser(currentUser.loginToken, currentUser.username);
+      $navUserProfile.trigger("click");
     }
   });
 
@@ -346,7 +377,7 @@ $(async function() {
   /**
    * A function to render HTML for an individual Story instance
    */
-  function generateStoryHTML(story, trash = false, edit = false) {
+  function generateStoryHTML(story, trash = false, save = false) {
     const hostName = getHostName(story.url);
 
     // render story markup
@@ -358,12 +389,12 @@ $(async function() {
     }
 
     const pencilSpan = `
-          <span class="pencil">
+          <span id="editStory" class="pencil">
             <i class="fa-pencil-alt fas"></i >
           </span >
           `;
-    const editSpan = `
-          <span class="save">
+    const saveSpan = `
+          <span id="saveStory" class="save">
             <i class="fa-save fas"></i >
           </span >
           `;
@@ -372,7 +403,7 @@ $(async function() {
       trashSpan = `
           <span class="trash-can">
             <i class="fa-trash-alt fas"></i >
-          </span >${edit ? editSpan : pencilSpan}`;
+          </span >${save ? saveSpan : pencilSpan}`;
     }
 
     const storyMarkup = $(`
@@ -389,7 +420,7 @@ $(async function() {
       </li>
     `);
 
-    const editMarkup = $(`
+    const saveMarkup = $(`
       <li id="${story.storyId}">${trashSpan}
         <span class="star">
           <i class="${classList}"></i>
@@ -402,7 +433,7 @@ $(async function() {
       </li>
     `);
 
-    return edit ? editMarkup : storyMarkup;
+    return save ? saveMarkup : storyMarkup;
   }
 
   /* hide all elements in elementsArr */
